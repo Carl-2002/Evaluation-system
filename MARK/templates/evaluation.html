@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>评估测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .evaluation-container {
+            width: 80%;
+            max-width: 600px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center; /* 使内容居中 */
+        }
+        .evaluation-container select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .evaluation-container button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s ease, transform 0.3s ease;
+        }
+        .evaluation-container button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        .result-container {
+            margin-top: 20px;
+            text-align: left;
+            padding: 10px;
+            border-radius: 4px;
+            max-height: 300px; /* 设置最大高度 */
+        }
+        .button-container {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .button-container button {
+            margin: 0 10px;
+            padding: 15px 30px; /* 增加内边距 */
+            font-size: 18px; /* 增加字体大小 */
+        }
+        .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .progress-container {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #f3f3f3;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 30px;
+            width: 0;
+            background-color: #087af5;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="evaluation-container">
+        <h2>评估测试</h2>
+        <select id="dropdown1">
+            <option value="">选择文件</option>
+            <!-- 文件选项将通过 JavaScript 动态添加 -->
+        </select>
+        <select id="dropdown3" onchange="toggleGeneralAlgorithm()">
+            <option value="">选择题型</option>
+            <option value="choose">选择题</option>
+            <option value="text">文字题</option>
+        </select>
+        <select id="dropdown2">
+            <option value="">选择模型</option>
+            <option value="qwen2.5:3b">qwen2.5:3b</option> 
+            <option value="deepseek-r1:1.5b">deepseek-r1:1.5b</option>
+            <option value="xuanzeti">选择题模型</option>
+        </select>
+        <select id="dropdown4" style="display: none;">
+            <option value="">是否选择通用算法(无标准答案不能选择是)</option>
+            <option value="yes">是</option>
+            <option value="no">否</option>
+        </select>
+        <div class="button-container">
+            <button id="submitEvaluationButton" onclick="submitEvaluation()">提交评测</button>
+        </div>
+        <div id="resultContainer" class="result-container"></div>
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+
+        // 监听进度更新
+        socket.on('progress', function(data) {
+            const progressBarFill = document.getElementById('progressBarFill');
+            progressBarFill.style.width = data.progress + '%';
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = `<h3>评测进度: ${data.progress.toFixed(2)}%</h3>`;
+        });
+
+        // 监听状态更新
+        socket.on('status', function(data) {
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = `<h3>${data.message}</h3>`;
+        });
+
+        // 监听错误更新
+        socket.on('error', function(data) {
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = `<h3 style="color: red;">错误: ${data.message}</h3>`;
+            // 可选：禁用提交按钮
+            document.getElementById('submitEvaluationButton').classList.add('disabled');
+        });
+
+        async function loadFiles() {
+            const response = await fetch('/files_new');
+            if (!response.ok) {
+                alert('无法加载文件列表');
+                return;
+            }
+
+            const files = await response.json();
+            const dropdown1 = document.getElementById('dropdown1');
+            dropdown1.innerHTML = '<option value="">选择文件</option>';
+
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file.name;
+                option.textContent = file.name;
+                dropdown1.appendChild(option);
+            });
+        }
+
+        function toggleGeneralAlgorithm() {
+            const dropdown3 = document.getElementById('dropdown3');
+            const dropdown4 = document.getElementById('dropdown4');
+            if (dropdown3.value === 'text') {
+                dropdown4.style.display = 'block';
+            } else {
+                dropdown4.style.display = 'none';
+            }
+        }
+
+        function submitEvaluation() {
+            const dropdown1 = document.getElementById('dropdown1').value;
+            const dropdown2 = document.getElementById('dropdown2').value;
+            const dropdown3 = document.getElementById('dropdown3').value;
+            const dropdown4 = document.getElementById('dropdown4').value;
+
+            if (dropdown1 === "" || dropdown2 === "" || dropdown3 === "") {
+                alert('请选择所有选项');
+                return;
+            }
+
+            if (dropdown3 === 'text' && dropdown4 === "") {
+                alert('请选择是否需要通用算法评测');
+                return;
+            }
+
+            const data = {
+                dropdown1: dropdown1,
+                dropdown2: dropdown2,
+                dropdown3: dropdown3,
+                dropdown4: dropdown4  // 新增参数
+            };
+
+            const resultContainer = document.getElementById('resultContainer');
+            resultContainer.innerHTML = '<h3>评测中.......</h3>'; // 添加加载提示
+
+            fetch('/submit_evaluation', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.message === '评测开始') {
+                    // 启动进度条
+                    document.getElementById('progressBarFill').style.width = '0%';
+                } else {
+                    resultContainer.innerHTML = `<h3>${result.message}</h3>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('提交失败');
+                const resultContainer = document.getElementById('resultContainer');
+                resultContainer.innerHTML = '<h3>评测失败</h3>'; // 添加加载提示
+            });
+        }
+
+        // 页面加载时加载文件列表
+        window.onload = loadFiles;
+    </script>
+</body>
+</html>

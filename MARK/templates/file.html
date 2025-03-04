@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件管理</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .button-container {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .button-container button {
+            margin: 5px; /* 增加按钮之间的间距 */
+            padding: 15px 30px; /* 增加按钮的内边距，使按钮变大 */
+            font-size: 16px; /* 增加字体大小 */
+            cursor: pointer;
+            border: none;
+            border-radius: 8px; /* 增加圆角 */
+            background-color: #007bff;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 添加阴影效果 */
+            transition: background-color 0.3s ease, transform 0.3s ease; /* 添加过渡效果 */
+        }
+        .button-container button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05); /* 鼠标悬停时稍微放大按钮 */
+        }
+        .file-input {
+            margin: 5px;
+            padding: 20px;
+            font-size: 20px;
+        }
+        .file-list {
+            width: 90%; /* 使列表变得更大 */
+            max-width: 1200px; /* 使列表变得更大 */
+            margin: 0px 0;
+            padding: 20px; /* 增加内边距 */
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .file-list h2 {
+            text-align: center; /* 标题居中 */
+        }
+        .file-list table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .file-list th, .file-list td {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            text-align: right; /* 右对齐 */
+        }
+        .file-list th:last-child, .file-list td:last-child {
+            text-align: left; /* 按钮左对齐 */
+        }
+        .file-list th {
+            background-color: #f2f2f2;
+        }
+        .file-list .buttons {
+            display: flex;
+            gap: 10px; /* 使用 gap 属性增加按钮之间的间距 */
+        }
+        .file-list .buttons button {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="button-container">
+        <input type="file" id="fileInput" class="file-input" />
+        <button onclick="uploadFile()">上传</button>
+    </div>
+
+    <div class="file-list">
+        <h2>文件列表</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>大小</th>
+                    <th>上传时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody id="fileList">
+                <!-- 文件列表项将通过 JavaScript 动态添加 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function uploadFile() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert('请选择一个文件');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch('/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            loadFiles(); // 刷新文件列表
+        }
+
+        async function loadFiles() {
+            const response = await fetch('/files');
+            if (!response.ok) {
+                alert('无法加载文件列表');
+                return;
+            }
+
+            const files = await response.json();
+            const fileList = document.getElementById('fileList');
+            fileList.innerHTML = '';
+
+            files.forEach(file => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${file.name}</td>
+                    <td>${file.size} KB</td>
+                    <td>${file.uploadTime}</td>
+                    <td>
+                        <div class="buttons">
+                            <button onclick="downloadFile('${file.name}')">下载</button>
+                            <button onclick="deleteFile('${file.name}')">删除</button>
+                        </div>
+                    </td>
+                `;
+                fileList.appendChild(tr);
+            });
+        }
+
+        async function downloadFile(filename) {
+            const response = await fetch(`/download/${filename}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                alert('文件下载失败');
+            }
+        }
+
+        async function deleteFile(filename) {
+            const response = await fetch(`/delete/${filename}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            loadFiles(); // 刷新文件列表
+        }
+
+        // 页面加载时加载文件列表
+        window.onload = loadFiles;
+    </script>
+</body>
+</html>

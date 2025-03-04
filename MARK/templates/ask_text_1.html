@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结果页面</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
+    <style>
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .table-container {
+            overflow-y: auto;
+            max-height: 750px; /* 设置最大高度 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+        .stats-container {
+            margin-top: 20px;
+        }
+        .stats-container th,
+        .stats-container td {
+            text-align: center;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-betwee;
+            margin-top: 10px;
+            width: 1000px; /* 调整宽度以适应一行 */
+            height: 580px; /* 调整高度以适应一行 */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>回答报告-文字题</h2>
+        <div class="table-container">
+            <table id="questionTable">
+                <thead>
+                    <tr>
+                        <th>问题</th>
+                        <th>模型答案</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- 表格内容将通过 JavaScript 动态生成 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.js"></script>
+    <script>
+        function populateTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; // 清空表格内容
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item['问题']}</td>
+                    <td>${item['模型答案']}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function fetchData(filename) {
+            try {
+                const response = await fetch(`/get_content_ask?filename=${filename}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                populateTable(data.data);
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // 获取 URL 参数中的 filename
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get('filename');
+
+        if (filename) {
+            fetchData(filename);
+        }
+    </script>
+</body>
+</html>

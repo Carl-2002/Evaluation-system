@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结果页面</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.css" />
+    <style>
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .table-container {
+            overflow-y: auto;
+            max-height: 600px; /* 设置最大高度 */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            text-align: center;
+        }
+        .stats-container {
+            margin-top: 20px;
+        }
+        .stats-container th,
+        .stats-container td {
+            text-align: center;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            margin-top: 10px;
+            width: 100%; /* 调整宽度以适应一行 */
+            height: 500px; /* 调整高度以适应一行 */
+        }
+        .chart {
+            width: 45%;
+            display: inline-block;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>评测报告-文字题</h2>
+        <div class="table-container">
+            <table id="questionTable">
+                <thead>
+                    <tr>
+                        <th>问题</th>
+                        <th>模型答案</th>
+                        <th>标准答案</th>
+                        <th>分数</th>
+                        <th>原因</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- 表格内容将通过 JavaScript 动态生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="stats-container">
+            <h3>统计信息</h3>
+            <table id="statsTable">
+                <thead>
+                    <tr>
+                        <th>总题数</th>
+                        <th>平均值</th>
+                        <th>中位数</th>
+                        <th>标准差</th>
+                    </tr>
+                </thead>
+                <tbody id="statsBody">
+                    <!-- 统计信息将通过 JavaScript 动态生成 -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="chart-container" id="chartContainer">
+            <canvas id="rouge-chart"></canvas>
+            <canvas id="bleu-chart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/antd/4.23.6/antd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        function populateTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = ''; // 清空表格内容
+
+            data.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${item['问题']}</td>
+                    <td>${item['模型答案']}</td>
+                    <td>${item['标准答案']}</td>
+                    <td>${item['分数']}</td>
+                    <td>${item['原因']}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function populateStats(stats) {
+            const statsBody = document.getElementById('statsBody');
+            statsBody.innerHTML = ''; // 清空表格内容
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${stats.total_questions}</td>
+                <td>${stats.average}</td>
+                <td>${stats.medium}</td>
+                <td>${stats.standard_deviation}</td>
+            `;
+            statsBody.appendChild(row);
+        }
+
+        function drawRougeChart(rouge) {
+            const ctx = document.getElementById('rouge-chart').getContext('2d');
+            const rougeChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['ROUGE-1 R', 'ROUGE-1 P', 'ROUGE-1 F', 'ROUGE-2 R', 'ROUGE-2 P', 'ROUGE-2 F', 'ROUGE-L R', 'ROUGE-L P', 'ROUGE-L F'],
+                    datasets: [{
+                        label: 'ROUGE Scores',
+                        data: [
+                            rouge['rouge-1']['r'],
+                            rouge['rouge-1']['p'],
+                            rouge['rouge-1']['f'],
+                            rouge['rouge-2']['r'],
+                            rouge['rouge-2']['p'],
+                            rouge['rouge-2']['f'],
+                            rouge['rouge-l']['r'],
+                            rouge['rouge-l']['p'],
+                            rouge['rouge-l']['f']
+                        ],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+        
+        function drawBleuChart(bleuData) {
+            const ctx = document.getElementById('bleu-chart').getContext('2d');
+            const bleuChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['BLEU Score 1', 'BLEU Score 2', 'BLEU Score 3', 'BLEU Score 4'],
+                    datasets: [{
+                        label: 'BLEU Scores',
+                        data: bleuData,
+                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        async function fetchData(filename) {
+            try {
+                const response = await fetch(`/get_content?filename=${filename}`);
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                const data = await response.json();
+                populateTable(data.data);
+                populateStats(data.stats);
+                
+                if (data.draw_charts == 1) {
+                    drawRougeChart(data.rouge);
+                    drawBleuChart(data.bleu_score);
+                } else {
+                    document.getElementById('chartContainer').style.display = 'none'; // 隐藏图表容器
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+            }
+        }
+
+        // 获取 URL 参数中的 filename 和 draw_charts
+        const urlParams = new URLSearchParams(window.location.search);
+        const filename = urlParams.get('filename');
+
+        if (filename) {
+            fetchData(filename);
+        }
+    </script>
+</body>
+</html>

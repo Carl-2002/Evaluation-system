@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>结果页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .result-container {
+            width: 95%; /* 增加宽度 */
+            max-width: 1200px; /* 增加最大宽度 */
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .result-container table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .result-container th, .result-container td {
+            padding: 15px;
+            border-bottom: 1px solid #ddd;
+            text-align: right; /* 右对齐 */
+        }
+        .result-container th:last-child, .result-container td:last-child {
+            text-align: left; /* 按钮左对齐 */
+        }
+        .result-container th {
+            background-color: #f2f2f2;
+        }
+        .result-container .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .result-container .buttons button {
+            padding: 5px 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <h2>评测结果</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>文件名</th>
+                    <th>大小</th>
+                    <th>上传时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in result_files %}
+                <tr>
+                    <td>{{ file.name }}</td>
+                    <td>{{ file.size }} KB</td>
+                    <td>{{ file.uploadTime }}</td>
+                    <td>
+                        <div class="buttons">
+                            <button onclick="showFile('{{ file.name }}')">显示</button>
+                            <button onclick="downloadFile('{{ file.name }}')">下载</button>
+                            <button onclick="deleteFile('{{ file.name }}')">删除</button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function showFile(filename) {
+            if (filename.includes('_t')) {
+                window.location.href = `/show?filename=${filename}`;
+            } else  {
+                window.location.href = `/show_choose?filename=${filename}`;
+            }
+        }
+
+        async function downloadFile(filename) {
+            const response = await fetch(`/download/${filename}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } else {
+                alert('文件下载失败');
+            }
+        }
+
+        async function deleteFile(filename) {
+            const response = await fetch(`/delete/${filename}`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            alert(result.message);
+            location.reload(); // 刷新页面以更新文件列表
+        }
+    </script>
+</body>
+</html>
