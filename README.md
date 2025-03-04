@@ -41,4 +41,4 @@ If you encounter any bugs, please let me know. Your understanding is appreciated
 
 推荐的使用流程：准备好问题或者选择题与它们的标准答案，按照格式填写Excel文件中，上传文件，根据你的需求，点击模型回答，模型回答将自动生成答案，点击模型评测，模型评测将自动生成评测结果。
 
-如果有bug，请告知我，敬请谅解！  翻译成英语
+如果有bug，请告知我，敬请谅解！
